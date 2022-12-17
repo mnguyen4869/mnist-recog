@@ -16,7 +16,7 @@ VAL := $(wildcard $(TEST_DIR)/valgrind-out.txt*)
 CPPFLAGS := -I/home/$(USER)/.local/include -MMD -MP
 CFLAGS   := -Wall -pedantic -Wextra -Werror
 LDFLAGS  := -Wl,-rpath=/home/$(USER)/.local/lib -L/home/$(USER)/.local/lib 
-LDLIBS   := -lgramlinalg
+LDLIBS   := -lgramlinalg -lm
 
 .PHONY: all clean run-tests run-valgrind
 

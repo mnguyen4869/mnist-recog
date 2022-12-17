@@ -34,6 +34,69 @@ bool test_ReLU_d(void)
 
 bool test_ReLU_d_activation(void)
 {
+	matrix *m = grm_create_mat(4, 1);
+	double data[4] = {-2, -1, 1, 4};
+	double expected[4] = {0, 0, 1, 1};
+	grm_copy_data(m, data, 4);
+	matrix *n = grm_apply(ReLU_d, m);
+	size_t dim = m->num_rows * m->num_cols;
+	for (size_t i = 0; i < dim; i++) {
+		if (n->data[i] != expected[i]) {
+			return false;
+		}
+	}
+	grm_free_mat(&m);
+	grm_free_mat(&n);
+	return true;
+}
+
+bool test_sigmoid(void)
+{
+	double x = sigmoid(1);
+	double y = sigmoid(-1);
+	return (x == 0.7311 && y == 0.2689);
+}
+
+bool test_sigmoid_activation(void)
+{
+	matrix *m = grm_create_mat(4, 1);
+	double data[4] = {-2, -1, 1, 4};
+	double expected[4] = {0.1192, 0.269, 0.731, 0.982};
+	grm_copy_data(m, data, 4);
+	matrix *n = grm_apply(sigmoid, m);
+	size_t dim = m->num_rows * m->num_cols;
+	for (size_t i = 0; i < dim; i++) {
+		if (n->data[i] != expected[i]) {
+			return false;
+		}
+	}
+	grm_free_mat(&m);
+	grm_free_mat(&n);
+	return true;
+}
+
+bool test_sigmoid_d(void)
+{
+	double x = sigmoid_d(1);
+	double y = sigmoid_d(-1);
+	return (x == 0.1966 && y == 0.1966);
+}
+
+bool test_sigmoid_d_activation(void)
+{
+	matrix *m = grm_create_mat(4, 1);
+	double data[4] = {-2, -1, 1, 4};
+	double expected[4] = {0.105, 0.1966, 0.1966, 0.018};
+	grm_copy_data(m, data, 4);
+	matrix *n = grm_apply(sigmoid_d, m);
+	size_t dim = m->num_rows * m->num_cols;
+	for (size_t i = 0; i < dim; i++) {
+		if (n->data[i] != expected[i]) {
+			return false;
+		}
+	}
+	grm_free_mat(&m);
+	grm_free_mat(&n);
 	return true;
 }
 
@@ -73,26 +136,21 @@ bool test_feed_forward(void)
 	matrix *hi = grm_create_mat(3, 2);
 	double hi_weights[6] = {-0.5, -0.2, 0.2, 0.1, 0.8, 0.7};
 	grm_copy_data(hi, hi_weights, 6);
-	matrix *hi_empty = grm_create_mat(3, 1);
-	grm_fill_mat(hi_empty, 0);
-	layer *hi_layer = create_layer(hi, hi_empty);
+	layer *hi_layer = create_layer(hi, 0);
 
 	// output layer
 	matrix *ou = grm_create_mat(2, 3);
 	double ou_weights[6] = {0.5, -0.4, -0.1, 0.3, 0.6, 0.1};
 	grm_copy_data(ou, ou_weights, 6);
-	matrix *ou_one = grm_create_mat(2, 1);
-	grm_fill_mat(ou_one, 1);
-	layer *ou_layer = create_layer(ou, ou_one);
+	layer *ou_layer = create_layer(ou, 1);
 
-	// neural_net *nn = create_nn(n_layers, layer_s, in_layer);
 	neural_net *nn = create_nn(n_layers, layer_s);
 	free_layer(&(nn->layers[0]));
 	nn->layers[0] = hi_layer;
 	free_layer(&(nn->layers[1]));
 	nn->layers[1] = ou_layer;
 
-	matrix **result = feed_forward(nn, in);
+	matrix **result = feed_forward(nn, in, ReLU);
 	double expected_out1[3] = {0, 0.2, 0.8};
 	double expected_out2[2] = {0.84, 1.2};
 
@@ -111,6 +169,7 @@ bool test_feed_forward(void)
 		grm_free_mat(&(result[i]));
 	}
 
+	grm_free_mat(&in);
 	free(result);
 	free_nn(&nn);
 
@@ -119,6 +178,55 @@ bool test_feed_forward(void)
 
 bool test_back_prop(void)
 {
+	size_t n_layers = 2;
+	size_t layer_s[3] = {3, 2, 2};
+
+	// input layer
+	matrix *in = grm_create_mat(3, 1);
+	double data[3] = {1, 4, 5};
+	grm_copy_data(in, data, 3);
+
+	// hidden layer
+	matrix *hi = grm_create_mat(2, 3);
+	double hi_weights[6] = {0.1, 0.3, 0.5, 0.2, 0.4, 0.6};
+	grm_copy_data(hi, hi_weights, 6);
+	layer *hi_layer = create_layer(hi, 0.5);
+
+	// output layer
+	matrix *ou = grm_create_mat(2, 2);
+	double ou_weights[4] = {0.7, 0.9, 0.8, 0.1};
+	grm_copy_data(ou, ou_weights, 4);
+	layer *ou_layer = create_layer(ou, 0.5);
+
+	neural_net *nn = create_nn(n_layers, layer_s);
+	free_layer(&(nn->layers[0]));
+	nn->layers[0] = hi_layer;
+	free_layer(&(nn->layers[1]));
+	nn->layers[1] = ou_layer;
+
+	matrix *expected = grm_create_mat(2, 1);
+	double exp_data[2] = {0.1, 0.05};
+	grm_copy_data(expected, exp_data, 2);
+
+	back_prop(nn, in, expected, 0.01, sigmoid, sigmoid_d);
+
+	// double expected_out1[2] = {sigmoid((0.1 * 1 + 0.3 * 4 + 0.5 * 5 + 0.5)),
+	// 							sigmoid((0.2 * 1 + 0.4 * 4 + 0.6 * 5 + 0.5))};
+	// double expected_out2[2] = {sigmoid((0.7 * expected_out1[0] + 0.9 * expected_out1[1] + 0.5)),
+	// 							sigmoid((0.8 * expected_out1[0] + 0.1 * expected_out1[1] + 0.5))};
+
+	// for (size_t i = 0; i < result[0]->num_rows * result[0]->num_cols; i++) {
+	// 	if (result[0]->data[i] != expected_out1[i]) {
+	// 		return false;
+	// 	}
+	// }
+	// for (size_t i = 0; i < result[1]->num_rows * result[1]->num_cols; i++) {
+	// 	if (result[1]->data[i] != expected_out2[i]) {
+	// 		return false;
+	// 	}
+	// }
+
+	free_nn(&nn);
 	return true;
 }
 
