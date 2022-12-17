@@ -125,74 +125,91 @@ void back_prop(neural_net *nn, matrix *data, matrix *expected, double alpha,
 	size_t num_h_layers = nn->num_h_layers;
 	matrix **output_layers = feed_forward(nn, data, act);
 	matrix **deltas;
-	double *bias_deltas;
 
 	if ((deltas = malloc(sizeof(*deltas) * num_h_layers)) == NULL) {
 		fprintf(stderr, "Malloc on deltas failed");
 		exit(1);
 	}
 
-	if ((bias_deltas = malloc(sizeof(*bias_deltas) * num_h_layers)) == NULL) {
-		fprintf(stderr, "Malloc on deltas failed");
-		exit(1);
-	}
-
-	matrix *error = grm_subtract(output_layers[num_h_layers - 1], expected);
-
 	// derivative of previous layer
 	matrix *input_d = apply_activation(nn->layers[num_h_layers - 1],
 			output_layers[num_h_layers - 2], act_d);
 
+	matrix *error = grm_subtract(output_layers[num_h_layers - 1], expected);
+
 	deltas[num_h_layers - 1] = grm_multiply(error, input_d);
+	grm_free_mat(&input_d);
+	grm_free_mat(&error);
 
-	// output of previous layer
-	// matrix *d = grm_create_mat(1, 2);
-	// grm_fill_mat(d, 1);
-	// deltas[num_h_layers - 1] = grm_dot(err_times_in, d);
-	// grm_free_mat(&d);
-
-	printf("result\n");
-	grm_print_mat(deltas[num_h_layers - 1]);
-	printf("\n");
+	// printf("result\n");
+	// grm_print_mat(deltas[num_h_layers - 1]);
+	// printf("\n");
 
 	// continue for all other hidden layers in reverse order
 	for (size_t i = num_h_layers - 1; i > 0; i--) {
-		printf("cur mat\n");
-		grm_print_mat(nn->layers[i - 1]->weights);
-		printf("\n");
+		matrix *g_prime;
 		if (i == 1) {
-			matrix *g_prime = apply_activation(nn->layers[i - 1], data, act_d);
-			matrix *t = grm_transpose(nn->layers[i]->weights);
-			matrix *summation = grm_dot(t, deltas[i]);
-			matrix *delta_i = grm_multiply(g_prime, summation);
-			printf("delta\n");
-			grm_print_mat(delta_i);
-			grm_free_mat(&g_prime);
-			grm_free_mat(&t);
-			grm_free_mat(&summation);
-			deltas[i - 1] = delta_i;
+			g_prime = apply_activation(nn->layers[i - 1], data, act_d);
 		}
-		// else {
+		else {
+			g_prime = apply_activation(nn->layers[i - 1], output_layers[i - 2], act_d);
+		}
+		matrix *t = grm_transpose(nn->layers[i]->weights);
+		matrix *summation = grm_dot(t, deltas[i]);
+		matrix *delta_i = grm_multiply(g_prime, summation);
 
-		// }
-		printf("\n");
+		grm_free_mat(&g_prime);
+		grm_free_mat(&t);
+		grm_free_mat(&summation);
+		deltas[i - 1] = delta_i;
 	}
 
-	update_weight_biases(nn, alpha, output_layers, deltas);
+	update_weight_biases(nn, alpha, data, output_layers, deltas);
 
 	for (size_t i = 0; i < nn->num_h_layers; i++) {
 		grm_free_mat(&(output_layers[i]));
+		grm_free_mat(&(deltas[i]));
 	}
+	free(output_layers);
+	free(deltas);
 }
 
-// void update_weight_biases(neural_net *nn, double alpha,
-// 		matrix **out_layers, matrix **deltas)
-// {
-// 	// update weights
-// 	for (size_t i = 0; i < nn->num_h_layers; i++) {
-// 		matrix *diff = grm_scale(alpha, deltas[i]);
-// 		nn->layers[i]->weights = grm_subtract(nn->layers[i]->weights, diff);
-// 		grm_free_mat(&diff);
-// 	}
-// 	// update biases
-// }
+void update_weight_biases(neural_net *nn, double alpha, matrix *input,
+		matrix **out_layers, matrix **deltas)
+{
+	matrix *t;
+	double sum = 0;
+	// update weights and biases
+	for (size_t i = 0; i < nn->num_h_layers; i++) {
+		// printf("\n");
+		// printf("delta %ld\n", i);
+		// grm_print_mat(deltas[i]);
+		for (size_t j = 0; j < deltas[i]->num_rows * deltas[i]->num_cols; j++) {
+			sum += deltas[i]->data[j];
+		}
+		nn->layers[i]->bias -= alpha * sum;
+		// printf("\n");
+		// printf("weights layer %ld\n", i);
+		// grm_print_mat(nn->layers[i]->weights);
+		// printf("\n");
+		// printf("input %ld\n", i);
+		if (i == 0) {
+			// grm_print_mat(input);
+			t = grm_transpose(input);
+		}
+		else {
+			// grm_print_mat(out_layers[i - 1]);
+			t = grm_transpose(out_layers[i - 1]);
+		}
+		matrix *before_a = grm_dot(deltas[i], t);
+		grm_free_mat(&t);
+		matrix *alpha_mat = grm_scale(alpha, before_a);
+		grm_free_mat(&before_a);
+
+		// add or subtract ?
+		matrix *new_weights = grm_subtract(nn->layers[i]->weights, alpha_mat); 
+		grm_free_mat(&alpha_mat);
+		grm_free_mat(&(nn->layers[i]->weights));
+		nn->layers[i]->weights = new_weights;
+	}
+}

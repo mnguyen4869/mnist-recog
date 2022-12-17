@@ -208,24 +208,34 @@ bool test_back_prop(void)
 	double exp_data[2] = {0.1, 0.05};
 	grm_copy_data(expected, exp_data, 2);
 
+	matrix **result = feed_forward(nn, in, sigmoid);
+
+	double expected_out1[2] = {sigmoid((0.1 * 1 + 0.3 * 4 + 0.5 * 5 + 0.5)),
+								sigmoid((0.2 * 1 + 0.4 * 4 + 0.6 * 5 + 0.5))};
+	double expected_out2[2] = {sigmoid((0.7 * expected_out1[0] + 0.9 * expected_out1[1] + 0.5)),
+								sigmoid((0.8 * expected_out1[0] + 0.1 * expected_out1[1] + 0.5))};
+
+	for (size_t i = 0; i < result[0]->num_rows * result[0]->num_cols; i++) {
+		if (result[0]->data[i] != expected_out1[i]) {
+			return false;
+		}
+	}
+	for (size_t i = 0; i < result[1]->num_rows * result[1]->num_cols; i++) {
+		if (result[1]->data[i] != expected_out2[i]) {
+			return false;
+		}
+	}
+
+	for (size_t i = 0; i < nn->num_h_layers; i++) {
+		grm_free_mat(&(result[i]));
+	}
+
 	back_prop(nn, in, expected, 0.01, sigmoid, sigmoid_d);
+	// add checks here
 
-	// double expected_out1[2] = {sigmoid((0.1 * 1 + 0.3 * 4 + 0.5 * 5 + 0.5)),
-	// 							sigmoid((0.2 * 1 + 0.4 * 4 + 0.6 * 5 + 0.5))};
-	// double expected_out2[2] = {sigmoid((0.7 * expected_out1[0] + 0.9 * expected_out1[1] + 0.5)),
-	// 							sigmoid((0.8 * expected_out1[0] + 0.1 * expected_out1[1] + 0.5))};
-
-	// for (size_t i = 0; i < result[0]->num_rows * result[0]->num_cols; i++) {
-	// 	if (result[0]->data[i] != expected_out1[i]) {
-	// 		return false;
-	// 	}
-	// }
-	// for (size_t i = 0; i < result[1]->num_rows * result[1]->num_cols; i++) {
-	// 	if (result[1]->data[i] != expected_out2[i]) {
-	// 		return false;
-	// 	}
-	// }
-
+	free(result);
+	grm_free_mat(&in);
+	grm_free_mat(&expected);
 	free_nn(&nn);
 	return true;
 }

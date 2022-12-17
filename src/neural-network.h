@@ -46,7 +46,7 @@ matrix **feed_forward(neural_net *nn, matrix *input, double (*activation)(double
 void back_prop(neural_net *nn, matrix *data, matrix *expected, double alpha,
 				double (*act)(double), double (*act_d)(double));
 
-void update_weight_biases(neural_net *nn, double alpha,
+void update_weight_biases(neural_net *nn, double alpha, matrix *input,
 				matrix **out_layers, matrix **deltas);
 
 void save_nn(neural_net *nn, char *filename);
