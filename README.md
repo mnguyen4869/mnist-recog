@@ -12,3 +12,6 @@ make
 This trains a neural network with 3 hidden layers and a learning rate of 0.15.
 The input layer is made of 784 nodes and the subsequent integers are the number
 of nodes in each hidden layer after.
+
+Relies on my [small matrix library](https://github.com/mnguyen4869/gram).
+Modifications to the Makefile is needed to match the .so filepath.
