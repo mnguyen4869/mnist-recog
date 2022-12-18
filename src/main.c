@@ -3,8 +3,7 @@
 #include "neural-network.h"
 #include "idx_parse.h"
 
-// int main (int argc, char *argv[])
-int main ()
+int main (int argc, char *argv[])
 {
 	srand(time(0));
 	
@@ -20,14 +19,36 @@ int main ()
 	// matrix **testing_images = (matrix**) parse_idxfile("data/test/kmnist-t10k-images-idx3-ubyte");
 	// matrix *testing_labels = (matrix*) parse_idxfile("data/test/kmnist-t10k-labels-idx1-ubyte");
 
-	size_t num_layers = 3;
-	size_t layer_size[4] = {784, 16, 12, 10};
+	size_t num_layers = atoi(argv[1]);
+	double learning_rate = strtod(argv[2], NULL);
+
+	if ((size_t) argc != num_layers + 4) {
+		fprintf(stderr, "Incorrect amount of arguments.\n"
+				"# of hidden layers, learning rate, # of nodes per layer including input\n");
+		exit(1);
+	}
+
+	size_t *layer_size;
+	if ((layer_size = malloc(sizeof(*layer_size) * (num_layers + 1))) == NULL) {
+		fprintf(stderr, "Malloc on layer size failed\n");
+		exit(1);
+	}
+
+	printf("Neural Network\n"
+			"Learning Rate: %1.4f\n"
+			"# Hidden Layers: %ld\n"
+			"Layer Sizes:", learning_rate, num_layers);
+
+	for (size_t i = 0; i < num_layers + 1; i++) {
+		layer_size[i] = atoi(argv[i + 3]);
+		printf(" %ld", layer_size[i]);
+	}
+	printf("\n\n");
 
 	double training_error = 0;
 	size_t test_correct = 0;
 	size_t test_total = 0;
 
-	// neural_net *nn = load_nn("data/final-neural-net");
 	neural_net *nn = create_nn(num_layers, layer_size);
 
 	for (size_t i = 0; i < 60000; i++) {
@@ -37,7 +58,7 @@ int main ()
 		matrix *input = grm_flatten_mat(training_images[i], 1);
 		// scaling data to be [0, 1]
 		matrix *input_s = grm_scale((double) 1 / (double) 255, input);
-		training_error += (back_prop(nn, input_s, expected, 0.25, sigmoid, sigmoid_d));
+		training_error += (back_prop(nn, input_s, expected, learning_rate, sigmoid, sigmoid_d));
 		grm_free_mat(&input);
 		grm_free_mat(&input_s);
 		grm_free_mat(&expected);
@@ -74,8 +95,6 @@ int main ()
 	double test_acc = (double) test_correct / test_total;
 	printf("Test Accuracy %f\n", test_acc);
 	printf("Test Accuracy %ld / %ld\n", test_correct, test_total);
-	save_nn(nn, "data/final-neural-net");
-
 
 	free(training_images);
 	grm_free_mat(&training_labels);
