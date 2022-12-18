@@ -136,13 +136,17 @@ bool test_feed_forward(void)
 	matrix *hi = grm_create_mat(3, 2);
 	double hi_weights[6] = {-0.5, -0.2, 0.2, 0.1, 0.8, 0.7};
 	grm_copy_data(hi, hi_weights, 6);
-	layer *hi_layer = create_layer(hi, 0);
+	matrix *empty_mat = grm_create_mat(3, 1);
+	grm_fill_mat(empty_mat, 0);
+	layer *hi_layer = create_layer(hi, empty_mat);
 
 	// output layer
 	matrix *ou = grm_create_mat(2, 3);
 	double ou_weights[6] = {0.5, -0.4, -0.1, 0.3, 0.6, 0.1};
 	grm_copy_data(ou, ou_weights, 6);
-	layer *ou_layer = create_layer(ou, 1);
+	matrix *one_mat = grm_create_mat(2, 1);
+	grm_fill_mat(one_mat, 1);
+	layer *ou_layer = create_layer(ou, one_mat);
 
 	neural_net *nn = create_nn(n_layers, layer_s);
 	free_layer(&(nn->layers[0]));
@@ -169,6 +173,13 @@ bool test_feed_forward(void)
 		grm_free_mat(&(result[i]));
 	}
 
+	matrix *expected = grm_create_mat(2, 1);
+	double exp_data[2] = {0.1, 0.05};
+	grm_copy_data(expected, exp_data, 2);
+
+	back_prop(nn, in, expected, 0.05, ReLU, ReLU_d);
+
+	grm_free_mat(&expected);
 	grm_free_mat(&in);
 	free(result);
 	free_nn(&nn);
@@ -190,13 +201,17 @@ bool test_back_prop(void)
 	matrix *hi = grm_create_mat(2, 3);
 	double hi_weights[6] = {0.1, 0.3, 0.5, 0.2, 0.4, 0.6};
 	grm_copy_data(hi, hi_weights, 6);
-	layer *hi_layer = create_layer(hi, 0.5);
+	matrix *half_mat = grm_create_mat(2, 1);
+	grm_fill_mat(half_mat, 0.5);
+	layer *hi_layer = create_layer(hi, half_mat);
 
 	// output layer
 	matrix *ou = grm_create_mat(2, 2);
 	double ou_weights[4] = {0.7, 0.9, 0.8, 0.1};
 	grm_copy_data(ou, ou_weights, 4);
-	layer *ou_layer = create_layer(ou, 0.5);
+	matrix *half_mat2 = grm_create_mat(2, 1);
+	grm_fill_mat(half_mat2, 0.5);
+	layer *ou_layer = create_layer(ou, half_mat2);
 
 	neural_net *nn = create_nn(n_layers, layer_s);
 	free_layer(&(nn->layers[0]));
@@ -240,12 +255,44 @@ bool test_back_prop(void)
 	return true;
 }
 
-bool test_update_weight(void)
-{
-	return true;
-}
-
 bool test_save_load_nn(void)
 {
+	size_t n_layers = 2;
+	size_t layer_s[3] = {2, 3, 2};
+	neural_net *nn = create_nn(n_layers, layer_s);
+
+	save_nn(nn, "tests/test_file");
+
+	neural_net *nn2 = load_nn("tests/test_file");
+
+	if (nn2->num_h_layers != nn->num_h_layers) {
+		return false;
+	}
+
+	for (size_t i = 0; i < nn2->num_h_layers + 1; i++) {
+		if (layer_s[i] != nn->layer_size[i]) {
+			return false;
+		}
+	}
+
+	for (size_t i = 0; i < nn2->num_h_layers; i++) {
+		layer *curr = nn2->layers[i];
+		for (size_t j = 0; j < curr->weights->num_rows * curr->weights->num_cols; j++) {
+			if (curr->weights->data[j] + 0.0001 < nn->layers[i]->weights->data[j] &&
+					curr->weights->data[j] - 0.0001 > nn->layers[i]->weights->data[j]) {
+				return false;
+			}
+		}
+		for (size_t j = 0; j < curr->weights->num_rows; j++) {
+			if (curr->biases->data[j] + 0.0001 < nn->layers[i]->biases->data[j] &&
+					curr->biases->data[j] - 0.0001 > nn->layers[i]->biases->data[j]) {
+				return false;
+			}
+		}
+	}
+
+	free_nn(&nn);
+	free(nn2->layer_size);
+	free_nn(&nn2);
 	return true;
 }

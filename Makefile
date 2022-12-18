@@ -23,10 +23,10 @@ LDLIBS   := -lgramlinalg -lm
 all: $(EXE)
 
 $(EXE): $(OBJ) | $(BIN_DIR)
-	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	$(CC) -O2 $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) -O2 $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 $(BIN_DIR) $(OBJ_DIR):
 	mkdir -p $@
@@ -44,11 +44,12 @@ run-valgrind: $(TEST_EXE)
 	cat "$(TEST_DIR)/valgrind-out.txt"
 
 $(TEST_EXE): $(BIN_DIR)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -ggdb3 $(LDFLAGS) $(LDLIBS) $(SRC) $(TEST_SRC) $(TEST) -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) -ggdb3 $(LDFLAGS) $(LDLIBS) src/idx_parse.c src/neural-network.c $(TEST_SRC) $(TEST) -o $@
 
 clean:
 	rm -rfv $(OBJ_DIR)
 	rm -rfv $(BIN_DIR)
 	rm -rfv $(VAL)
+	rm -rfv "$(TEST_DIR)/test_file"
 
 -include $(OBJ:.o=.d)

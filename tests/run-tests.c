@@ -20,7 +20,7 @@ int main ()
 
 	assert(test_back_prop());
 
-	assert(test_update_weight());
+	assert(test_save_load_nn());
 
 	printf("Passed all neural net tests\n");
 

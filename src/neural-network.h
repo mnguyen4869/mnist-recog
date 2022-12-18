@@ -7,8 +7,7 @@
 
 typedef struct {
 	matrix *weights;
-	// matrix *biases;
-	double bias;
+	matrix *biases;
 } layer;
 
 typedef struct {
@@ -25,11 +24,11 @@ double sigmoid(double value);
 
 double sigmoid_d(double value);
 
+matrix *softmax(matrix *input);
+
 matrix *apply_activation(layer *layer, matrix *input, double (*act)(double));
 
-// layer *create_layer(matrix *weights, matrix *biases);
-
-layer *create_layer(matrix *weights, double bias);
+layer *create_layer(matrix *weights, matrix *biases);
 
 layer *create_rand_layer(size_t weight_rows, size_t weight_cols);
 
@@ -43,7 +42,7 @@ matrix **feed_forward_no_act(neural_net *nn, matrix *input);
 
 matrix **feed_forward(neural_net *nn, matrix *input, double (*activation)(double));
 
-void back_prop(neural_net *nn, matrix *data, matrix *expected, double alpha,
+double back_prop(neural_net *nn, matrix *data, matrix *expected, double alpha,
 				double (*act)(double), double (*act_d)(double));
 
 void update_weight_biases(neural_net *nn, double alpha, matrix *input,

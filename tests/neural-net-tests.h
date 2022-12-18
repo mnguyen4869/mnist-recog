@@ -22,6 +22,8 @@ bool test_feed_forward(void);
 
 bool test_back_prop(void);
 
-bool test_update_weight(void);
+bool test_bigger_nn(void);
+
+bool test_custom_nn(void);
 
 bool test_save_load_nn(void);
