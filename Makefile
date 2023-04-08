@@ -10,7 +10,7 @@ SRC := $(wildcard $(SRC_DIR)/*.c)
 OBJ := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
 TEST_EXE := $(BIN_DIR)/run-tests
-TEST_SRC := $(wildcard $(TEST_DIR)/*.c)
+TEST_SRC := $(filter-out src/main.c, $(SRC) $(wildcard $(TEST_DIR)/*.c))
 VAL := $(wildcard $(TEST_DIR)/valgrind-out.txt*)
 
 CPPFLAGS := -I/home/$(USER)/.local/include -MMD -MP
@@ -44,7 +44,7 @@ run-valgrind: $(TEST_EXE)
 	cat "$(TEST_DIR)/valgrind-out.txt"
 
 $(TEST_EXE): $(BIN_DIR)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -ggdb3 $(LDFLAGS) $(LDLIBS) src/idx_parse.c src/neural-network.c $(TEST_SRC) $(TEST) -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) -ggdb3 $(LDFLAGS) $(LDLIBS) $(TEST_SRC) -o $@
 
 clean:
 	rm -rfv $(OBJ_DIR)
